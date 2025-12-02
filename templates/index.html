@@ -195,6 +195,18 @@
 
                     <div class="panel-section">
                         <div class="section-header">
+                            <span>Applied Load</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="input-group">
+                                <label>P (kN)</label>
+                                <input type="number" id="pillarP" value="50" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
                             <span>Boundary</span>
                         </div>
                         <div class="section-body">
@@ -226,15 +238,23 @@
                         <div class="result-card">
                             <h4>Critical Load Analysis</h4>
                             <div class="stat-row">
-                                <span class="stat-label">Pcr</span>
+                                <span class="stat-label">Critical Load (Pcr)</span>
                                 <span class="stat-value" id="resPcr">-</span>
                             </div>
                             <div class="stat-row">
-                                <span class="stat-label">σcr</span>
+                                <span class="stat-label">Applied Load (P)</span>
+                                <span class="stat-value" id="resP">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Safety Factor</span>
+                                <span class="stat-value" id="resSF">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Critical Stress (σcr)</span>
                                 <span class="stat-value" id="resSigma">-</span>
                             </div>
                             <div class="stat-row">
-                                <span class="stat-label">λ</span>
+                                <span class="stat-label">Slenderness (λ)</span>
                                 <span class="stat-value" id="resLambda">-</span>
                             </div>
                         </div>

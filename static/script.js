@@ -75,7 +75,9 @@ function addSupport() {
         <button class="remove-btn" onclick="this.parentElement.remove(); debounceBeamCalc();"><i class="fa-solid fa-xmark"></i></button>
     `;
     document.getElementById('supportsList').appendChild(div);
-    div.querySelectorAll('input, select').forEach(el => el.addEventListener('change', debounceBeamCalc));
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', debounceBeamCalc));
+    div.querySelectorAll('select').forEach(el => el.addEventListener('change', debounceBeamCalc));
+    debounceBeamCalc(); // Trigger immediate update
 }
 
 function addLoad() {
@@ -87,7 +89,8 @@ function addLoad() {
         <button class="remove-btn" onclick="this.parentElement.remove(); debounceBeamCalc();"><i class="fa-solid fa-xmark"></i></button>
     `;
     document.getElementById('loadsList').appendChild(div);
-    div.querySelectorAll('input').forEach(el => el.addEventListener('change', debounceBeamCalc));
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', debounceBeamCalc));
+    debounceBeamCalc(); // Trigger immediate update
 }
 
 function addDistLoad() {
@@ -100,7 +103,8 @@ function addDistLoad() {
         <button class="remove-btn" onclick="this.parentElement.remove(); debounceBeamCalc();"><i class="fa-solid fa-xmark"></i></button>
     `;
     document.getElementById('distLoadsList').appendChild(div);
-    div.querySelectorAll('input').forEach(el => el.addEventListener('change', debounceBeamCalc));
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', debounceBeamCalc));
+    debounceBeamCalc(); // Trigger immediate update
 }
 
 function init() {
@@ -138,16 +142,17 @@ function init() {
     
     addFrameLoad(2, 1000, 0, 0);
 
-    // Add listeners to beam property inputs
-    document.getElementById('beamLength').addEventListener('change', debounceBeamCalc);
-    document.getElementById('beamE').addEventListener('change', debounceBeamCalc);
-    document.getElementById('beamI').addEventListener('change', debounceBeamCalc);
+    // Add listeners to beam property inputs (use 'input' for real-time updates)
+    document.getElementById('beamLength').addEventListener('input', debounceBeamCalc);
+    document.getElementById('beamE').addEventListener('input', debounceBeamCalc);
+    document.getElementById('beamI').addEventListener('input', debounceBeamCalc);
     
     // Add listeners to pillar inputs
-    document.getElementById('pillarL').addEventListener('change', debouncePillarCalc);
-    document.getElementById('pillarE').addEventListener('change', debouncePillarCalc);
-    document.getElementById('pillarI').addEventListener('change', debouncePillarCalc);
-    document.getElementById('pillarA').addEventListener('change', debouncePillarCalc);
+    document.getElementById('pillarL').addEventListener('input', debouncePillarCalc);
+    document.getElementById('pillarE').addEventListener('input', debouncePillarCalc);
+    document.getElementById('pillarI').addEventListener('input', debouncePillarCalc);
+    document.getElementById('pillarA').addEventListener('input', debouncePillarCalc);
+    document.getElementById('pillarP').addEventListener('input', debouncePillarCalc);
     document.getElementById('pillarK').addEventListener('change', debouncePillarCalc);
 
     // Initial draws and calculations
@@ -304,8 +309,9 @@ function drawBeam() {
     if (!canvas || canvas.offsetParent === null) return;
     
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const rect = container.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
     
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
@@ -436,6 +442,8 @@ function drawBeam() {
 
 // === PILLAR LOGIC ===
 async function calculatePillar() {
+    const appliedP = parseFloat(document.getElementById('pillarP').value) * 1000; // Convert kN to N
+    
     const payload = {
         length: parseFloat(document.getElementById('pillarL').value),
         E: parseFloat(document.getElementById('pillarE').value) * 1e9, // Convert GPa to Pa
@@ -453,8 +461,27 @@ async function calculatePillar() {
         const result = await response.json();
         if (result.status === 'success') {
             const d = result.data;
-            document.getElementById('resPcr').innerText = d.P_cr.toFixed(2) + ' N';
-            document.getElementById('resSigma').innerText = d.sigma_cr.toFixed(2) + ' Pa';
+            const Pcr = d.P_cr;
+            const SF = Pcr / appliedP;
+            
+            // Format Pcr nicely
+            let pcrText = Pcr >= 1e6 ? (Pcr / 1e6).toFixed(2) + ' MN' : 
+                          Pcr >= 1e3 ? (Pcr / 1e3).toFixed(2) + ' kN' : 
+                          Pcr.toFixed(2) + ' N';
+            
+            document.getElementById('resPcr').innerText = pcrText;
+            document.getElementById('resP').innerText = (appliedP / 1000).toFixed(1) + ' kN';
+            
+            // Color code safety factor
+            const sfEl = document.getElementById('resSF');
+            sfEl.innerText = SF.toFixed(2);
+            sfEl.style.color = SF >= 3 ? '#10b981' : SF >= 1.5 ? '#f59e0b' : '#ef4444';
+            
+            // Format sigma nicely
+            let sigmaText = d.sigma_cr >= 1e6 ? (d.sigma_cr / 1e6).toFixed(2) + ' MPa' : 
+                            d.sigma_cr >= 1e3 ? (d.sigma_cr / 1e3).toFixed(2) + ' kPa' : 
+                            d.sigma_cr.toFixed(2) + ' Pa';
+            document.getElementById('resSigma').innerText = sigmaText;
             document.getElementById('resLambda').innerText = d.slenderness.toFixed(2);
             drawPillar(d.K);
         }
@@ -468,8 +495,9 @@ function drawPillar(K = 1.0) {
     if (!canvas || canvas.offsetParent === null) return;
     
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const rect = container.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
     
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
@@ -571,8 +599,8 @@ function renderFrameUI() {
         div.className = 'item-row';
         div.innerHTML = `
             <span style="font-weight:600; font-size:0.7rem; color:#64748b">N${n.id}</span>
-            <input type="number" value="${n.x}" onchange="updateNode(${n.id}, 'x', this.value)" placeholder="X">
-            <input type="number" value="${n.y}" onchange="updateNode(${n.id}, 'y', this.value)" placeholder="Y">
+            <input type="number" value="${n.x}" oninput="updateNode(${n.id}, 'x', this.value)" placeholder="X">
+            <input type="number" value="${n.y}" oninput="updateNode(${n.id}, 'y', this.value)" placeholder="Y">
             <button class="remove-btn" onclick="removeFrameNode(${n.id})"><i class="fa-solid fa-xmark"></i></button>
         `;
         nList.appendChild(div);
@@ -585,8 +613,8 @@ function renderFrameUI() {
         div.className = 'item-row';
         div.innerHTML = `
             <span style="font-weight:600; font-size:0.7rem; color:#64748b">E${e.id}</span>
-            <input type="number" value="${e.n1}" placeholder="N1" onchange="updateElem(${e.id}, 'n1', this.value)">
-            <input type="number" value="${e.n2}" placeholder="N2" onchange="updateElem(${e.id}, 'n2', this.value)">
+            <input type="number" value="${e.n1}" placeholder="N1" oninput="updateElem(${e.id}, 'n1', this.value)">
+            <input type="number" value="${e.n2}" placeholder="N2" oninput="updateElem(${e.id}, 'n2', this.value)">
             <button class="remove-btn" onclick="removeFrameElem(${e.id})"><i class="fa-solid fa-xmark"></i></button>
         `;
         eList.appendChild(div);
@@ -599,7 +627,7 @@ function renderFrameUI() {
         div.className = 'item-row';
         div.innerHTML = `
             <span><i class="fa-solid fa-anchor" style="color:#64748b; font-size:0.65rem"></i></span>
-            <input type="number" value="${s.node}" onchange="frameSupports[${idx}].node=parseInt(this.value); debounceFrameCalc()">
+            <input type="number" value="${s.node}" oninput="frameSupports[${idx}].node=parseInt(this.value); debounceFrameCalc()">
             <select onchange="frameSupports[${idx}].type=this.value; debounceFrameCalc()">
                 <option value="pin" ${s.type=='pin'?'selected':''}>Pin</option>
                 <option value="fixed" ${s.type=='fixed'?'selected':''}>Fixed</option>
@@ -617,9 +645,9 @@ function renderFrameUI() {
         div.className = 'item-row';
         div.innerHTML = `
             <span><i class="fa-solid fa-arrow-down" style="color:#64748b; font-size:0.65rem"></i></span>
-            <input type="number" value="${l.node}" onchange="frameLoads[${idx}].node=parseInt(this.value); debounceFrameCalc()">
-            <input type="number" value="${l.fx}" placeholder="Fx" onchange="frameLoads[${idx}].fx=parseFloat(this.value); debounceFrameCalc()">
-            <input type="number" value="${l.fy}" placeholder="Fy" onchange="frameLoads[${idx}].fy=parseFloat(this.value); debounceFrameCalc()">
+            <input type="number" value="${l.node}" oninput="frameLoads[${idx}].node=parseInt(this.value); debounceFrameCalc()">
+            <input type="number" value="${l.fx}" placeholder="Fx" oninput="frameLoads[${idx}].fx=parseFloat(this.value); debounceFrameCalc()">
+            <input type="number" value="${l.fy}" placeholder="Fy" oninput="frameLoads[${idx}].fy=parseFloat(this.value); debounceFrameCalc()">
             <button class="remove-btn" onclick="frameLoads.splice(${idx},1); renderFrameUI(); debounceFrameCalc();"><i class="fa-solid fa-xmark"></i></button>
         `;
         lList.appendChild(div);
@@ -681,8 +709,9 @@ function drawFrame(showDeformed = false) {
     if (!canvas || canvas.offsetParent === null) return;
     
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const rect = container.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width);
+    canvas.height = Math.floor(rect.height);
 
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;

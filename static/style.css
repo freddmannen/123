@@ -366,6 +366,14 @@ input[type="number"]:focus, select:focus {
     overflow: hidden;
 }
 
+.canvas-wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 /* Results Area - Grid of all diagrams */
 .results-area {
     flex: 1;
