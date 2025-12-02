@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StructCalc Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    
+    <!-- Application Header -->
+    <header class="app-header">
+        <div class="brand-area">
+            <div class="app-logo">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div class="app-title">StructCalc <span>Pro</span></div>
+        </div>
+        <nav class="main-nav">
+            <button class="nav-item active" onclick="switchTab('beam')">
+                <i class="fa-solid fa-minus"></i> Beam
+            </button>
+            <button class="nav-item" onclick="switchTab('pillar')">
+                <i class="fa-solid fa-i-cursor"></i> Column
+            </button>
+            <button class="nav-item" onclick="switchTab('frame')">
+                <i class="fa-solid fa-shapes"></i> Frame
+            </button>
+        </nav>
+        <div class="user-area">
+            <div class="avatar-circle">F</div>
+        </div>
+    </header>
+
+    <div class="app-body">
+        
+        <!-- BEAM TAB -->
+        <div id="beam-tab" class="workspace active-workspace">
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Beam Configuration</h3>
+                </div>
+                
+                <div class="sidebar-content">
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span><i class="fa-solid fa-ruler-horizontal"></i> Properties</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="input-group">
+                                <label>Length (m)</label>
+                                <input type="number" id="beamLength" value="10" step="0.1">
+                            </div>
+                            <div class="grid-2">
+                                <div class="input-group">
+                                    <label>E (GPa)</label>
+                                    <input type="number" id="beamE" value="200" step="1">
+                                </div>
+                                <div class="input-group">
+                                    <label>I (m⁴)</label>
+                                    <input type="number" id="beamI" value="0.0001">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span><i class="fa-solid fa-location-pin"></i> Supports</span>
+                            <button class="btn-icon-small" onclick="addSupport()"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="supportsList" class="item-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span><i class="fa-solid fa-arrow-down"></i> Point Loads</span>
+                            <button class="btn-icon-small" onclick="addLoad()"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="loadsList" class="item-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span><i class="fa-solid fa-cloud-rain"></i> Distributed</span>
+                            <button class="btn-icon-small" onclick="addDistLoad()"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="distLoadsList" class="item-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Viewport -->
+            <main class="viewport">
+                <!-- Top Visualization -->
+                <div class="visualization-area">
+                    <div class="viz-header">
+                        <span class="viz-title">Structure Preview</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="beamCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- All diagrams visible at once -->
+                <div class="results-area">
+                    <div class="diagram-card">
+                        <div class="diagram-header">Shear Force</div>
+                        <div class="diagram-body">
+                            <div class="chart-container">
+                                <canvas id="shearChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diagram-card">
+                        <div class="diagram-header">Bending Moment</div>
+                        <div class="diagram-body">
+                            <div class="chart-container">
+                                <canvas id="momentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diagram-card">
+                        <div class="diagram-header">Deflection</div>
+                        <div class="diagram-body">
+                            <div class="chart-container">
+                                <canvas id="deflectionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diagram-card">
+                        <div class="diagram-header">Reactions</div>
+                        <div class="diagram-body">
+                            <div class="table-wrapper">
+                                <table id="reactionsTable" class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Pos</th>
+                                            <th>Type</th>
+                                            <th>Fy (N)</th>
+                                            <th>Mz (N·m)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- PILLAR TAB -->
+        <div id="pillar-tab" class="workspace">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Column Configuration</h3>
+                </div>
+                <div class="sidebar-content">
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Geometry & Material</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="input-group">
+                                <label>Length (m)</label>
+                                <input type="number" id="pillarL" value="5">
+                            </div>
+                            <div class="input-group">
+                                <label>E (GPa)</label>
+                                <input type="number" id="pillarE" value="200" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label>I (m⁴)</label>
+                                <input type="number" id="pillarI" value="0.0001">
+                            </div>
+                            <div class="input-group">
+                                <label>Area (m²)</label>
+                                <input type="number" id="pillarA" value="0.01">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Boundary</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="input-group">
+                                <label>Support Type</label>
+                                <select id="pillarK">
+                                    <option value="pin-pin">Pin-Pin (K=1.0)</option>
+                                    <option value="fixed-free">Fixed-Free (K=2.0)</option>
+                                    <option value="fixed-fixed">Fixed-Fixed (K=0.5)</option>
+                                    <option value="fixed-pin">Fixed-Pin (K=0.7)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="viewport">
+                <div class="split-view">
+                    <div class="viz-panel">
+                        <div class="viz-header">
+                            <span class="viz-title">Buckling Mode Shape</span>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="pillarCanvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="results-panel-side">
+                        <div class="result-card">
+                            <h4>Critical Load Analysis</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Pcr</span>
+                                <span class="stat-value" id="resPcr">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">σcr</span>
+                                <span class="stat-value" id="resSigma">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">λ</span>
+                                <span class="stat-value" id="resLambda">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- FRAME TAB -->
+        <div id="frame-tab" class="workspace">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Frame Configuration</h3>
+                </div>
+                <div class="sidebar-content">
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Nodes</span>
+                            <button class="btn-icon-small" onclick="addFrameNode()">+</button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="frameNodesList" class="item-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Elements</span>
+                            <button class="btn-icon-small" onclick="addFrameElem()">+</button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="frameElemsList" class="item-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Supports</span>
+                            <button class="btn-icon-small" onclick="addFrameSupport()">+</button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="frameSupportsList" class="item-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="section-header">
+                            <span>Loads</span>
+                            <button class="btn-icon-small" onclick="addFrameLoad()">+</button>
+                        </div>
+                        <div class="section-body no-padding">
+                            <div id="frameLoadsList" class="item-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="viewport">
+                 <!-- Large Visualization for Frame -->
+                 <div class="visualization-area frame-viz">
+                    <div class="viz-header">
+                        <span class="viz-title">Frame Visualization</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="frameCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Results side by side -->
+                <div class="frame-results-area">
+                    <div class="diagram-card">
+                        <div class="diagram-header">Reactions</div>
+                        <div class="diagram-body">
+                            <div class="table-wrapper">
+                                <table id="frameReactions" class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Node</th>
+                                            <th>Rx</th>
+                                            <th>Ry</th>
+                                            <th>Mz</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="diagram-card">
+                        <div class="diagram-header">Displacements</div>
+                        <div class="diagram-body">
+                            <div class="table-wrapper">
+                                <table id="frameDisplacements" class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Node</th>
+                                            <th>u</th>
+                                            <th>v</th>
+                                            <th>θ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
