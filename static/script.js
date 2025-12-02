@@ -84,7 +84,7 @@ function addLoad() {
     const div = document.createElement('div');
     div.className = 'item-row';
     div.innerHTML = `
-        <input type="number" class="load-mag" placeholder="N" value="-1000">
+        <input type="number" class="load-mag" placeholder="kN" value="-10" step="0.1">
         <input type="number" class="load-pos" placeholder="m" value="5" step="0.1">
         <button class="remove-btn" onclick="this.parentElement.remove(); debounceBeamCalc();"><i class="fa-solid fa-xmark"></i></button>
     `;
@@ -97,7 +97,7 @@ function addDistLoad() {
     const div = document.createElement('div');
     div.className = 'item-row';
     div.innerHTML = `
-        <input type="number" class="dist-mag" placeholder="N/m" value="-1000">
+        <input type="number" class="dist-mag" placeholder="kN/m" value="-5" step="0.1">
         <input type="number" class="dist-start" placeholder="Start" value="0" step="0.1">
         <input type="number" class="dist-end" placeholder="End" value="5" step="0.1">
         <button class="remove-btn" onclick="this.parentElement.remove(); debounceBeamCalc();"><i class="fa-solid fa-xmark"></i></button>
@@ -140,7 +140,7 @@ function init() {
     addFrameSupport(1, 'fixed');
     addFrameSupport(4, 'fixed');
     
-    addFrameLoad(2, 1000, 0, 0);
+    addFrameLoad(2, 10, 0, 0); // 10 kN horizontal load
 
     // Add listeners to beam property inputs (use 'input' for real-time updates)
     document.getElementById('beamLength').addEventListener('input', debounceBeamCalc);
@@ -190,7 +190,7 @@ async function calculate() {
     const loads = [];
     document.querySelectorAll('#loadsList .item-row').forEach(row => {
         loads.push({
-            magnitude: parseFloat(row.querySelector('.load-mag').value),
+            magnitude: parseFloat(row.querySelector('.load-mag').value) * 1000, // Convert kN to N
             pos: parseFloat(row.querySelector('.load-pos').value)
         });
     });
@@ -198,7 +198,7 @@ async function calculate() {
     const distLoads = [];
     document.querySelectorAll('#distLoadsList .item-row').forEach(row => {
         distLoads.push({
-            magnitude: parseFloat(row.querySelector('.dist-mag').value),
+            magnitude: parseFloat(row.querySelector('.dist-mag').value) * 1000, // Convert kN/m to N/m
             start: parseFloat(row.querySelector('.dist-start').value),
             end: parseFloat(row.querySelector('.dist-end').value)
         });
@@ -232,8 +232,8 @@ function displayReactions(reactions) {
         const row = `<tr>
             <td>${r.pos}</td>
             <td>${r.type}</td>
-            <td>${r.Fy.toFixed(1)}</td>
-            <td>${r.Mz.toFixed(1)}</td>
+            <td>${(r.Fy / 1000).toFixed(2)}</td>
+            <td>${(r.Mz / 1000).toFixed(2)}</td>
         </tr>`;
         tbody.innerHTML += row;
     });
@@ -247,9 +247,15 @@ function renderCharts(data) {
     const deflectionColor = '#10b981';
     const deflectionFill = 'rgba(16, 185, 129, 0.1)';
 
-    createChart('shearChart', 'Shear (N)', data.x, data.shear, shearColor, shearFill);
-    createChart('momentChart', 'Moment (N·m)', data.x, data.moment, momentColor, momentFill);
-    createChart('deflectionChart', 'Deflection (m)', data.x, data.deflection, deflectionColor, deflectionFill);
+    // Convert N to kN and N·m to kN·m for display
+    const shearKN = data.shear.map(v => v / 1000);
+    const momentKNm = data.moment.map(v => v / 1000);
+    // Convert m to mm for deflection
+    const deflectionMM = data.deflection.map(v => v * 1000);
+
+    createChart('shearChart', 'Shear (kN)', data.x, shearKN, shearColor, shearFill);
+    createChart('momentChart', 'Moment (kN·m)', data.x, momentKNm, momentColor, momentFill);
+    createChart('deflectionChart', 'Deflection (mm)', data.x, deflectionMM, deflectionColor, deflectionFill);
 }
 
 function createChart(canvasId, label, labels, dataPoints, color, fillColor) {
@@ -390,7 +396,7 @@ function drawBeam() {
     
     // Loads
     document.querySelectorAll('#loadsList .item-row').forEach(row => {
-        const mag = parseFloat(row.querySelector('.load-mag').value);
+        const mag = parseFloat(row.querySelector('.load-mag').value); // Already in kN
         const pos = parseFloat(row.querySelector('.load-pos').value);
         const x = toPx(pos);
         if (x < -100 || x > W + 100) return;
@@ -404,12 +410,12 @@ function drawBeam() {
         ctx.beginPath(); ctx.moveTo(x, yStart); ctx.lineTo(x - 4, yStart - dir * 8); ctx.lineTo(x + 4, yStart - dir * 8); ctx.closePath(); ctx.fill();
         
         ctx.font = 'bold 9px Inter'; ctx.textAlign = 'center';
-        ctx.fillText(`${Math.abs(mag)}N`, x, yEnd - dir * 8);
+        ctx.fillText(`${Math.abs(mag)} kN`, x, yEnd - dir * 8);
     });
 
     // Distributed Loads
     document.querySelectorAll('#distLoadsList .item-row').forEach(row => {
-        const mag = parseFloat(row.querySelector('.dist-mag').value);
+        const mag = parseFloat(row.querySelector('.dist-mag').value); // Already in kN/m
         const start = parseFloat(row.querySelector('.dist-start').value);
         const end = parseFloat(row.querySelector('.dist-end').value);
         const x1 = toPx(start), x2 = toPx(end);
@@ -435,7 +441,7 @@ function drawBeam() {
         const cx = startPx + w/2;
         if (cx > padding && cx < W - padding) {
              ctx.font = '9px Inter';
-             ctx.fillStyle = '#ef4444'; ctx.textAlign = 'center'; ctx.fillText(`${Math.abs(mag)} N/m`, cx, yTop - dir * 8);
+             ctx.fillStyle = '#ef4444'; ctx.textAlign = 'center'; ctx.fillText(`${Math.abs(mag)} kN/m`, cx, yTop - dir * 8);
         }
     });
 }
@@ -586,7 +592,8 @@ function addFrameSupport(node, type) {
 }
 
 function addFrameLoad(node, fx, fy, m) {
-    frameLoads.push({ node: node||1, fx: fx||0, fy: fy||-1000, m: m||0 });
+    // Store in kN (fx, fy default to kN, m in kN·m)
+    frameLoads.push({ node: node||1, fx: fx||0, fy: fy||-10, m: m||0 });
     renderFrameUI();
     debounceFrameCalc();
 }
@@ -666,11 +673,19 @@ function removeFrameNode(id) { frameNodes = frameNodes.filter(n => n.id !== id);
 function removeFrameElem(id) { frameElems = frameElems.filter(e => e.id !== id); renderFrameUI(); debounceFrameCalc(); }
 
 async function calculateFrame() {
+    // Convert loads from kN to N for backend
+    const loadsInN = frameLoads.map(l => ({
+        node: l.node,
+        fx: l.fx * 1000,  // kN to N
+        fy: l.fy * 1000,  // kN to N
+        m: l.m * 1000     // kN·m to N·m
+    }));
+    
     const payload = {
         nodes: frameNodes,
         elements: frameElems,
         supports: frameSupports,
-        loads: frameLoads
+        loads: loadsInN
     };
     
     try {
@@ -694,7 +709,8 @@ function displayFrameResults(data) {
     const rBody = document.querySelector('#frameReactions tbody');
     rBody.innerHTML = '';
     data.reactions.forEach(r => {
-        rBody.innerHTML += `<tr><td>${r.node}</td><td>${r.Rx.toFixed(1)}</td><td>${r.Ry.toFixed(1)}</td><td>${r.Mz.toFixed(1)}</td></tr>`;
+        // Convert N to kN for display
+        rBody.innerHTML += `<tr><td>${r.node}</td><td>${(r.Rx/1000).toFixed(2)}</td><td>${(r.Ry/1000).toFixed(2)}</td><td>${(r.Mz/1000).toFixed(2)}</td></tr>`;
     });
     
     const dBody = document.querySelector('#frameDisplacements tbody');
