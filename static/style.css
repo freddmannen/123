@@ -165,11 +165,9 @@ body {
 
 .sidebar-header h3 {
     margin: 0;
-    font-size: 0.7rem;
-    text-transform: uppercase;
+    font-size: 0.8rem;
     color: var(--text-muted);
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-weight: 600;
 }
 
 .sidebar-content {
@@ -349,11 +347,9 @@ input[type="number"]:focus, select:focus {
 }
 
 .viz-title {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .canvas-wrapper {
@@ -398,11 +394,9 @@ input[type="number"]:focus, select:focus {
     padding: 0.4rem 0.6rem;
     border-bottom: 1px solid var(--border-color);
     background: #f8fafc;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
 }
 
 .diagram-body {
@@ -486,9 +480,9 @@ input[type="number"]:focus, select:focus {
 
 .result-card h4 {
     margin: 0 0 0.75rem 0;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
-    text-transform: uppercase;
+    font-weight: 600;
 }
 
 .stat-row {
